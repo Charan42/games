@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" class="game">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Reversi · Games</title>
+  <meta name="description" content="Trap and flip discs; corners win games. Versus the computer or a friend.">
+  <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../shared/base.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="play">
+    <p class="hud"><span class="count"><i class="d1"></i><b id="black">2</b></span><span id="status" aria-live="polite"></span><span class="count"><i class="d2"></i><b id="white">2</b></span></p>
+    <div class="board fit">
+      <div class="grid" style="--cols: 8; --rows: 8" role="img" aria-label="Reversi board"></div>
+    </div>
+    <div class="controls">
+      <button type="button" class="chip" id="opponent"></button>
+      <button type="button" class="chip" id="new">New game</button>
+    </div>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
