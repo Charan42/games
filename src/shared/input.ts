@@ -18,18 +18,24 @@ const KEYS: Record<string, Dir> = {
 const SWIPE_PX = 24
 
 // Calls onDir for swipes on `area` (touch, mouse or pen) and for arrow keys or WASD anywhere.
-// A swipe fires as soon as it travels SWIPE_PX, then measures again from that point, so one
-// continuous gesture can turn several times without lifting the finger.
+// A swipe fires as soon as it travels SWIPE_PX, then keeps measuring from that point: one
+// gesture can change direction several times (up, then left), but never repeats a direction,
+// so a long swipe is still one move in a turn-based game.
 export function onDirection(area: HTMLElement, onDir: (d: Dir) => void) {
   let from: PointerEvent | null = null
-  area.addEventListener('pointerdown', e => { from = e })
+  let fired: Dir | null = null
+  area.addEventListener('pointerdown', e => {
+    from = e
+    fired = null
+  })
   area.addEventListener('pointermove', e => {
     if (!from || e.pointerId !== from.pointerId) return
     const dx = e.clientX - from.clientX
     const dy = e.clientY - from.clientY
     if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return
-    onDir(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up')
+    const d: Dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up'
     from = e
+    if (d !== fired) onDir((fired = d))
   })
   const end = () => { from = null }
   area.addEventListener('pointerup', end)
