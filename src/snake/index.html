@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en" class="game">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Snake · Games</title>
+  <meta name="description" content="Eat, grow, and don't bite your own tail.">
+  <link rel="stylesheet" href="../shared/base.css">
+</head>
+<body>
+  <main class="play">
+    <p class="hud"><span>Score <b id="score">0</b></span><span>Best <b id="best">0</b></span></p>
+    <div class="board">
+      <canvas role="img" aria-label="Snake board"></canvas>
+      <button type="button" class="overlay"><strong>Tap to play</strong><span>Swipe to steer · arrow keys on desktop</span></button>
+    </div>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

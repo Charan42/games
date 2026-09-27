@@ -26,6 +26,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--fg); }
 a { color: inherit; }
 button { font: inherit; color: inherit; }
@@ -106,13 +107,14 @@ html.game body {
 }
 .hud { display: flex; gap: 20px; margin: 0; color: var(--muted); font-variant-numeric: tabular-nums; }
 .hud b { color: var(--fg); }
-.board { position: relative; display: grid; flex: 1; place-items: center; width: 100%; min-height: 0; }
+/* The board fills the free space; the canvas and overlay share one centered grid cell,
+   so the overlay always matches the canvas exactly. */
+.board { display: grid; flex: 1; place-content: center; width: 100%; min-height: 0; }
+.board > * { grid-area: 1 / 1; }
 .board canvas { display: block; border-radius: 12px; }
 
 /* Start / pause / game-over screen: one big button over the board. */
 .overlay {
-  position: absolute;
-  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -121,13 +123,13 @@ html.game body {
   padding: 16px;
   border: 0;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  background: rgb(10 12 16 / 0.6);
+  color: #fff;
   text-align: center;
   cursor: pointer;
 }
-.overlay[hidden] { display: none; }
 .overlay strong { font-size: 1.6rem; }
-.overlay span { color: var(--muted); }
+.overlay span { color: rgb(255 255 255 / 0.75); }
 
 dialog {
   width: min(92vw, 420px);
