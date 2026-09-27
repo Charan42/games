@@ -1,6 +1,6 @@
 # Games: Architecture and Implementation Plan
 
-> **Status:** Phase 1 built on branch `phase-1` (2026-09-27) · not deployed yet
+> **Status:** Phase 1 live · Phase 3 started: Sand (Rust → WebAssembly) on branch `sand` (2026-09-27)
 > **Site:** `https://charan42.github.io/games/` (repo `Charan42/games`, GitHub Pages)
 > **Next step:** answer [§12 Open questions](#12-open-questions), then start [Phase 1](#phase-1-foundation--first-game).
 
@@ -43,7 +43,7 @@ The cost is a full page load between the hub and a game. Cross-document View Tra
 | Input | **Pointer Events** (touch, mouse and pen in one API) + keyboard; **Gamepad API** for controller games | Built into the browser. One code path covers touch and mouse. |
 | React | **Allowed per game, never required** | Useful for UI-heavy games. Adds nothing to a canvas game loop. |
 | Libraries, per game | PixiJS or Phaser (2D), Three.js (3D, WebGPU with WebGL2 fallback), Rapier (physics, WASM), ZzFX (~1 KB sound effects) | Only the game that imports a library downloads it. |
-| WebAssembly | **Rust + wasm-pack** (`--target web`); Emscripten for C/C++; engine web exports | See §8. |
+| WebAssembly | **Rust**, built with plain `cargo`; wasm-bindgen only when a game needs more than numbers across the boundary; Emscripten for C/C++; engine web exports | See §8. |
 | Tests | **node:test** (built into Node, runs the TypeScript directly) for game logic; **one Playwright smoke test** across all pages, run on desktop and as an emulated phone | Logic tests since Phase 1, with no extra dependency. The smoke test starts in Phase 2. |
 | Deploy | **GitHub Actions → Pages** (`upload-pages-artifact` + `deploy-pages`) | The official route. Free for public repos, no `gh-pages` branch. |
 | Tooling | **npm** and **Node 22** (already installed), pinned in `.nvmrc` | Nothing extra to install. |
@@ -65,9 +65,9 @@ The cost is a full page load between the hub and a game. Cross-document View Tra
 flowchart LR
   subgraph CI["GitHub Actions, on push to main"]
     direction TB
-    crate["src/*/crate (Rust)"] -->|"wasm-pack (Phase 3)"| pkg["src/*/pkg (.wasm + JS glue)"]
+    crate["src/*/crate (Rust)"] -->|"cargo build (Phase 3)"| wasm["target/wasm32-unknown-unknown/release/*.wasm"]
     ts["src/ (hub + games, TypeScript)"] --> vite["vite build"]
-    pkg --> vite
+    wasm --> vite
     vite --> dist["dist/ (static files)"]
   end
   dist -->|deploy-pages| pages["GitHub Pages"]
@@ -92,12 +92,12 @@ games/                         repo root
 │  ├─ _template/               starter game; built but unlisted (wip: true)
 │  ├─ snake/                   one folder = one game → /games/snake/
 │  │  └─ index.html  main.ts  meta.ts  logic.ts  logic.test.ts
-│  └─ sand/                    a WASM game (Phase 3)
-│     ├─ index.html  main.ts  meta.ts  thumb.webp
-│     ├─ crate/                Rust source
-│     └─ pkg/                  wasm-pack output: gitignored, built in CI
+│  └─ sand/                    a WASM game → /games/sand/
+│     ├─ index.html  main.ts  meta.ts  style.css
+│     └─ crate/                Rust source; builds to target/ (gitignored, built in CI)
 ├─ public/                     copied as-is: icons, web app manifest, 404.html, engine exports
-├─ Cargo.toml                  Rust workspace (Phase 3): members = ["src/*/crate"]
+├─ Cargo.toml                  Rust workspace: members = ["src/*/crate"]
+├─ rust-toolchain.toml         pins stable Rust and the wasm32 target
 ├─ vite.config.ts
 ├─ tsconfig.json
 ├─ package.json                "type": "module"
@@ -263,7 +263,7 @@ Jekyll doesn't run on Actions deploys, so the `_template/` folder is served norm
 
 **Local dev.**
 
-- `npm run dev` serves the hub at `localhost:5173/` and games at `/snake/`.
+- `npm run dev` compiles the Rust games, then serves the hub at `localhost:5173/` and games at `/snake/`. It needs Rust installed (`rustup`); after editing Rust, run `npm run wasm` and reload.
 - `npm run build && npm run preview` checks the production build.
 - `npm run dev -- --host` lets you test on a phone over your LAN. Service workers and Web Share need HTTPS away from localhost, so test those on the deployed site.
 
@@ -279,16 +279,18 @@ Jekyll doesn't run on Actions deploys, so the `_template/` folder is served norm
 |---|---|---|---|
 | 0 | Plain TypeScript | None | Snake, 2048, Minesweeper |
 | 1 | Use a WASM library from npm | None beyond `npm i` | Physics puzzle on Rapier; chess against Stockfish |
-| 2 | Rust core for the slow loop; TS keeps rendering, input and UI | Rust + wasm-pack | Falling sand: Rust updates a pixel buffer in WASM memory, TS draws it with `putImageData` or a WebGL texture |
+| 2 | Rust core for the slow loop; TS keeps rendering, input and UI | Rust + cargo | Sand: Rust updates the grid and writes a pixel buffer in WASM memory; TS draws it with `putImageData` |
 | 3 | Whole game in an engine compiled to WASM; the page just hosts a `<canvas>` | macroquad or Bevy (Rust), raylib + Emscripten (C), Godot | A 3D game; a large 2D game |
 
-**Tier 2 setup (Phase 3).**
+**Tier 2 setup (built for Sand).**
 
-- Build each crate with `wasm-pack build --target web --out-dir ../pkg`. When the old `rustwasm` GitHub org shut down in 2025, wasm-pack moved to the `wasm-bindgen` org, and it still gets releases (v0.15.0, May 2026). It generates `.d.ts` files, so TypeScript type-checks every call into Rust.
-- `--target web` output needs no Vite plugin (confirmed in §4).
-- Use one Cargo workspace at the repo root (`members = ["src/*/crate"]`). That gives one `target/` folder, one `Cargo.lock` and a shared build cache.
-- Keep binaries small with `[profile.release] opt-level = "z"` and `lto = true`, plus the `wasm-opt` pass that wasm-pack runs.
-- CI builds `pkg/`, with the Rust toolchain and the `wasm32-unknown-unknown` target cached. Locally you only need Rust when working on a WASM game. It isn't installed on this machine yet.
+- `npm run wasm` runs `cargo build --release --target wasm32-unknown-unknown` for every crate in the workspace (`members = ["src/*/crate"]`: one `target/` folder, one `Cargo.lock`). `dev` and `build` run it first; `npm test` also runs `cargo test`.
+- `rust-toolchain.toml` pins stable Rust and lists the wasm32 target, so rustup installs the target on first use, locally and on the CI runner. The workflow didn't need a Rust step.
+- A game imports its module as `@wasm/<crate>.wasm?url` (a Vite alias for Cargo's output folder) and loads it with `WebAssembly.instantiateStreaming`. Vite hashes and ships the file; no plugin.
+- **No wasm-bindgen or wasm-pack, while only numbers cross the boundary.** Sand's exports are plain `#[unsafe(no_mangle)] extern "C"` functions. TypeScript declares them in a six-line interface and reads the pixel buffers straight out of `memory.buffer`, with no copying. Add wasm-bindgen when a game needs strings, objects or JS callbacks. (wasm-pack survived the 2025 shutdown of the `rustwasm` org under the `wasm-bindgen` org; v0.15.0 shipped in May 2026.)
+- The release profile favors speed (`opt-level = 3`, LTO, one codegen unit, `panic = "abort"`). Sand is 30 KB, 12 KB gzipped.
+- Measured on a desktop CPU: 0.3 ms per step for a phone-sized grid (43k cells) and 1.2 ms for 209k cells, including writing both pixel buffers.
+- Lesson from Sand: scan direction should alternate per frame, not per row. Alternating per row sorts falling water into striped sheets. A regression test covers it.
 
 **Tier 3 notes.**
 
@@ -307,6 +309,7 @@ Jekyll doesn't run on Actions deploys, so the `_template/` folder is served norm
   - Host that game on Cloudflare (set headers with a `_headers` file) or itch.io (it has a SharedArrayBuffer setting).
 - If you add a Content-Security-Policy `<meta>` tag, WASM needs `'wasm-unsafe-eval'` in `script-src`.
 - Graphics: WebGL2 works everywhere. WebGPU is available in Chromium and Safari 26, and Firefox is rolling it out platform by platform. Use it through Three.js, Babylon.js or Bevy with a WebGL2 fallback rather than directly.
+- Sand needs neither. Canvas 2D draws the color buffer, then fakes bloom: Rust writes a second buffer with only the glowing cells, JS halves it three times (each halving averages 2×2 pixels) and adds the two blurriest copies on top with `lighter` blending.
 
 ## 9. Implementation plan
 
@@ -358,12 +361,13 @@ Still to do: enable Pages, merge to `main`, and play it on a real phone.
 
 ### Phase 3: WebAssembly
 
-- [ ] Tier 1: a physics puzzle on `@dimforge/rapier2d-compat`. This proves WASM works on Pages without any toolchain.
-- [ ] Tier 2:
-  - Install `rustup`, the `wasm32-unknown-unknown` target and wasm-pack.
-  - Set up the root Cargo workspace and build the first Rust game (falling sand).
-  - Make CI build `pkg/` before `vite build`.
-  - Add a loading indicator.
+- [ ] Tier 1: a physics puzzle on `@dimforge/rapier2d-compat`. Skipped for now: Tier 2 came first, and proves WASM on Pages anyway.
+- [x] Tier 2, **Sand** (branch `sand`):
+  - [x] Rust installed with `rustup`; `rust-toolchain.toml` pulls in the wasm32 target.
+  - [x] Root Cargo workspace and the first Rust game: sand, water, oil, lava, fire, wood, plants, smoke and steam, with 8 native tests.
+  - [x] `npm run build` compiles the Rust before `vite build`, so CI builds it from source.
+  - [x] Touch-first page: element toolbar, multi-finger drawing, hold to pour, glow for fire and lava, and a starter scene. Tested in headless Chrome as a phone and on desktop at 60 fps.
+  - [ ] Loading indicator. The module is 12 KB, so it isn't needed yet; add one with the first multi-MB engine game.
 - [ ] Learning exercise: port Connect Four's AI from TS to Rust and measure the difference.
 - [ ] Tier 3, when a game calls for it.
 - **Done when:** a Rust game builds from source in CI and plays on Pages.
@@ -395,7 +399,7 @@ Leaderboards, multiplayer and comments are covered in §10. Each uses a free-tie
 | Daily word game | Touch: on-screen keyboard | DOM | Date-seeded daily puzzle, sharing results |
 | Connect Four vs AI | Touch: tap a column | DOM + TS minimax | Game AI; later a TS-vs-WASM benchmark |
 | Physics puzzle | Touch: drag | Rapier (WASM from npm) | Tier 1 |
-| Falling sand | Touch: drag to paint | Rust → WASM + Canvas | Tier 2 |
+| Falling sand (**Sand**, built) | Touch: drag to paint | Rust → WASM + Canvas | Tier 2 |
 | Chess vs Stockfish | Touch: tap a piece, then a square | Stockfish WASM in a Web Worker | Workers + a WASM engine |
 | 3D runner | Touch: swipe between lanes | Three.js, WebGPU renderer | 3D with a WebGL2 fallback |
 | Online Connect Four | Touch: tap a column | Trystero (WebRTC) | Multiplayer with no server |
@@ -495,7 +499,7 @@ Defaults are in parentheses. Phase 1 was built with the defaults.
 3. **React:** allow React/Preact in DOM-heavy games, or keep everything vanilla? (Allowed, not required.)
 4. **Controller games on phones:** show them in a collapsed section, or hide them entirely on touch-only devices? (Collapsed section. Phones can pair Bluetooth controllers, and hidden games are easy to miss.)
 5. **Orientation:** portrait by default for touch games, with `landscape: true` as the exception? (Yes.)
-6. **Rust:** OK to install the Rust toolchain in Phase 3? (Yes. It's only needed for WASM games.)
+6. **Rust:** OK to install the Rust toolchain in Phase 3? (Done: installed with rustup for Sand.)
 
 ## 13. Deliberately skipped
 
@@ -503,6 +507,8 @@ Defaults are in parentheses. Phase 1 was built with the defaults.
 - **Router or state library:** the site has no client-side routing.
 - **Monorepo/workspaces:** keep one `package.json` until a game needs its own toolchain.
 - **Our own backend:** only when no free-tier service can do the job.
+- **wasm-bindgen, wasm-pack, wasm-opt:** not needed while a game only passes numbers to Rust and the binary is 30 KB.
+- **WebGL for Sand:** Canvas 2D handles the sandbox and its glow; move to WebGL when a game needs shaders.
 
 ## References
 
