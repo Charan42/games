@@ -1,4 +1,4 @@
-export type Tag = 'arcade' | 'puzzle' | 'board' | 'word' | 'sim' | 'multiplayer'
+export type Tag = 'arcade' | 'puzzle' | 'board' | 'strategy' | 'word' | 'sim' | 'multiplayer'
 
 export interface GameMeta {
   title: string
