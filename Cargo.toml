@@ -1,0 +1,10 @@
+# Rust crates for WebAssembly games live in src/<game>/crate.
+[workspace]
+members = ["src/*/crate"]
+resolver = "3"
+
+[profile.release]
+opt-level = 3 # simulations want speed more than a few KB of size
+lto = true
+codegen-units = 1
+panic = "abort"
