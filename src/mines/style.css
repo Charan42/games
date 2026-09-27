@@ -1,0 +1,19 @@
+:root { --closed: #b8c1ce; --closed-edge: #97a2b2; --open: #eceff3; }
+@media (prefers-color-scheme: dark) { :root { --closed: #3a4252; --closed-edge: #2a303c; --open: #1a1e25; } }
+
+.grid { gap: 2px; font-size: calc(var(--cell) * 0.55); font-weight: 750; }
+.grid i {
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: var(--closed);
+  box-shadow: inset 0 -3px 0 var(--closed-edge);
+  font-style: normal;
+  line-height: 1;
+}
+.grid i.open { background: var(--open); box-shadow: none; }
+.grid i.boom { background: #ef4444; }
+.grid i.cursor { outline: 3px solid var(--accent); outline-offset: -3px; }
+.grid i.pressed:not(.open) { filter: brightness(1.15); }
+.n1 { color: #3b82f6; } .n2 { color: #22c55e; } .n3 { color: #ef4444; } .n4 { color: #a855f7; }
+.n5 { color: #f97316; } .n6 { color: #14b8a6; } .n7 { color: #e11d48; } .n8 { color: #64748b; }
