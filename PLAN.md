@@ -1,6 +1,6 @@
 # Games: Architecture and Implementation Plan
 
-> **Status:** Phase 1 live · Phase 3 started: Sand (Rust → WebAssembly) on branch `sand` (2026-09-27)
+> **Status:** Phase 1 live · Sand (Rust → WebAssembly) live · Phase 2 under way: 2048, Mines, Connect Four, Reversi, Dots and Boxes, Tower Defense added (2026-09-28)
 > **Site:** `https://charan42.github.io/games/` (repo `Charan42/games`, GitHub Pages)
 > **Next step:** answer [§12 Open questions](#12-open-questions), then start [Phase 1](#phase-1-foundation--first-game).
 
@@ -348,7 +348,8 @@ Still to do: enable Pages, merge to `main`, and play it on a real phone.
 
 ### Phase 2: grow the catalog
 
-- [ ] 3–5 touch games from the backlog below, mixing Canvas and DOM games, plus one keyboard & controller game (the platformer) so that hub section has something in it.
+- [x] 3–5 touch games from the backlog below, mixing Canvas and DOM games: 2048, Mines, Connect Four (DOM); Dots and Boxes, Tower Defense (Canvas); Reversi (DOM). Board games share `shared/versus.ts` (vs computer easy/hard, or two players on one phone) and a CSS container-query grid (`.board.fit`).
+- [ ] One keyboard & controller game (the platformer) so that hub section has something in it.
 - [ ] Move `input.ts` into `shared/` when the second game needs it, then other helpers as they get reused.
 - [ ] Hub: "Keyboard & controller" section, tag filter, search, "Continue playing", best scores, "New" badge.
 - [ ] Tests: a `node:test` file for each game's logic (as Snake has), plus one Playwright test that opens the hub and every page, on desktop and as an emulated phone, and fails on console errors. Both run in CI before deploy.
@@ -392,12 +393,15 @@ Leaderboards, multiplayer and comments are covered in §10. Each uses a free-tie
 | Game | Input | Tech | What it proves |
 |---|---|---|---|
 | Snake | Touch: swipe | Canvas 2D | Game loop, input, storage, the deploy pipeline |
-| 2048 | Touch: swipe | DOM + CSS transitions | Pure-logic tests |
-| Minesweeper | Touch: tap, long-press to flag | DOM | Seeded boards, flood fill, a first tap that's always safe |
+| 2048 (built) | Touch: swipe | DOM + CSS transitions | Pure-logic tests |
+| Minesweeper (**Mines**, built) | Touch: tap, long-press to flag | DOM | Seeded boards, flood fill, a first tap that's always safe |
 | Breakout | Touch: drag | Canvas 2D | Collisions, offset drag |
 | Falling blocks | Touch: swipe, tap to rotate | Canvas 2D | Rotation, timing, difficulty curve |
 | Daily word game | Touch: on-screen keyboard | DOM | Date-seeded daily puzzle, sharing results |
-| Connect Four vs AI | Touch: tap a column | DOM + TS minimax | Game AI; later a TS-vs-WASM benchmark |
+| Connect Four vs AI (built) | Touch: tap a column | DOM + TS minimax | Game AI; later a TS-vs-WASM benchmark |
+| Reversi vs AI (built) | Touch: tap a square | DOM + TS alpha-beta, exact endgame | A stronger AI with a real evaluation |
+| Dots and Boxes vs AI (built) | Touch: tap between dots | Canvas 2D | Chain-aware AI |
+| Tower Defense (built) | Touch: tap to build | Canvas 2D, fixed ticks | Real-time strategy; balance tuned against a bot |
 | Physics puzzle | Touch: drag | Rapier (WASM from npm) | Tier 1 |
 | Falling sand (**Sand**, built) | Touch: drag to paint | Rust → WASM + Canvas | Tier 2 |
 | Chess vs Stockfish | Touch: tap a piece, then a square | Stockfish WASM in a Web Worker | Workers + a WASM engine |
