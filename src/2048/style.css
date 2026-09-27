@@ -1,0 +1,33 @@
+.grid {
+  position: relative;
+  border-radius: 12px;
+  background: #8f7a66;
+  font-weight: 800;
+}
+/* The overlay covers the board exactly, like on canvas games. */
+.fit .overlay { place-self: center; width: calc(var(--cell) * 4); height: calc(var(--cell) * 4); --cell: min(100cqw / 4, 100cqh / 4); }
+.grid > i { margin: 6%; /* of the cell's width, same as the tile padding below */ border-radius: 8px; background: rgb(238 228 218 / 0.35); }
+.tile {
+  position: absolute;
+  left: calc(var(--x) * var(--cell));
+  top: calc(var(--y) * var(--cell));
+  width: var(--cell);
+  height: var(--cell);
+  padding: calc(var(--cell) * 0.06);
+  transition: left 0.11s ease-in-out, top 0.11s ease-in-out;
+}
+.tile b {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: var(--bg-tile, #3c3a32);
+  color: var(--fg-tile, #f9f6f2);
+  font-size: var(--size, 1em);
+}
+.tile.fresh b { animation: appear 0.16s 0.1s backwards; }
+.tile.merged b { animation: pop 0.18s 0.1s backwards; }
+@keyframes appear { from { transform: scale(0); } }
+@keyframes pop { from { transform: scale(0); } 60% { transform: scale(1.18); } }
+@media (prefers-reduced-motion: reduce) { .tile { transition: none; } .tile b { animation: none !important; } }

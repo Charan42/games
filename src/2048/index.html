@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" class="game">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>2048 · Games</title>
+  <meta name="description" content="Slide the tiles, merge equal numbers, reach 2048.">
+  <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../shared/base.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="play">
+    <p class="hud"><span>Score <b id="score">0</b></span><span>Best <b id="best">0</b></span></p>
+    <div class="board fit">
+      <div class="grid" style="--cols: 4; --rows: 4" role="img" aria-label="2048 board"></div>
+      <button type="button" class="overlay" hidden></button>
+    </div>
+    <div class="controls">
+      <button type="button" class="chip" id="new">New game</button>
+    </div>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
