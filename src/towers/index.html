@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en" class="game">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Tower Defense · Games</title>
+  <meta name="description" content="Build and upgrade towers along the road. How many waves can you hold?">
+  <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../shared/base.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="play">
+    <p class="hud">
+      <span>Lives <b id="lives">20</b></span><span>Gold <b id="gold">0</b></span><span>Wave <b id="wave">0</b></span><span>Best <b id="best">0</b></span>
+    </p>
+    <div class="board">
+      <canvas role="img" aria-label="Tower defense map"></canvas>
+      <button type="button" class="overlay" hidden></button>
+    </div>
+    <div class="controls" id="tools" role="toolbar" aria-label="Towers"></div>
+    <div class="controls" id="selected" hidden>
+      <span id="info"></span>
+      <button type="button" class="chip" id="upgrade"></button>
+      <button type="button" class="chip" id="sell"></button>
+      <button type="button" class="chip" id="close" aria-label="Done">✕</button>
+    </div>
+    <div class="controls">
+      <button type="button" class="chip" id="call"></button>
+      <button type="button" class="chip" id="speed" aria-pressed="false">×2 speed</button>
+    </div>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
