@@ -279,7 +279,7 @@ Jekyll doesn't run on Actions deploys, so the `_template/` folder is served norm
 |---|---|---|---|
 | 0 | Plain TypeScript | None | Snake, 2048, Minesweeper |
 | 1 | Use a WASM library from npm | None beyond `npm i` | Physics puzzle on Rapier; chess against Stockfish |
-| 2 | Rust core for the slow loop; TS keeps rendering, input and UI | Rust + cargo | Sand: Rust updates the grid and writes a pixel buffer in WASM memory; TS draws it with `putImageData` |
+| 2 | Rust core for the slow loop; TS keeps rendering, input and UI | Rust + cargo | Sand: Rust updates the grid and writes 4 bytes per cell in WASM memory; TS uploads them to WebGL2, where shaders draw them |
 | 3 | Whole game in an engine compiled to WASM; the page just hosts a `<canvas>` | macroquad or Bevy (Rust), raylib + Emscripten (C), Godot | A 3D game; a large 2D game |
 
 **Tier 2 setup (built for Sand).**
@@ -287,9 +287,9 @@ Jekyll doesn't run on Actions deploys, so the `_template/` folder is served norm
 - `npm run wasm` runs `cargo build --release --target wasm32-unknown-unknown` for every crate in the workspace (`members = ["src/*/crate"]`: one `target/` folder, one `Cargo.lock`). `dev` and `build` run it first; `npm test` also runs `cargo test`.
 - `rust-toolchain.toml` pins stable Rust and lists the wasm32 target, so rustup installs the target on first use, locally and on the CI runner. The workflow didn't need a Rust step.
 - A game imports its module as `@wasm/<crate>.wasm?url` (a Vite alias for Cargo's output folder) and loads it with `WebAssembly.instantiateStreaming`. Vite hashes and ships the file; no plugin.
-- **No wasm-bindgen or wasm-pack, while only numbers cross the boundary.** Sand's exports are plain `#[unsafe(no_mangle)] extern "C"` functions. TypeScript declares them in a six-line interface and reads the pixel buffers straight out of `memory.buffer`, with no copying. Add wasm-bindgen when a game needs strings, objects or JS callbacks. (wasm-pack survived the 2025 shutdown of the `rustwasm` org under the `wasm-bindgen` org; v0.15.0 shipped in May 2026.)
-- The release profile favors speed (`opt-level = 3`, LTO, one codegen unit, `panic = "abort"`). Sand is 30 KB, 12 KB gzipped.
-- Measured on a desktop CPU: 0.3 ms per step for a phone-sized grid (43k cells) and 1.2 ms for 209k cells, including writing both pixel buffers.
+- **No wasm-bindgen or wasm-pack, while only numbers cross the boundary.** Sand's exports are plain `#[unsafe(no_mangle)] extern "C"` functions. TypeScript declares them in a six-line interface and reads the cell buffer straight out of `memory.buffer`, with no copying. Add wasm-bindgen when a game needs strings, objects or JS callbacks. (wasm-pack survived the 2025 shutdown of the `rustwasm` org under the `wasm-bindgen` org; v0.15.0 shipped in May 2026.)
+- The release profile favors speed (`opt-level = 3`, LTO, one codegen unit, `panic = "abort"`). Sand is 33 KB, 13 KB gzipped.
+- Measured on a desktop CPU: 1.0 ms per step for a phone-sized grid (57k cells) and 2.5 ms for 250k cells, including heat conduction and writing the cell buffer. The heat pass is over half of that; it looks up a per-element table and skips pairs at the same temperature (most of the air).
 - Lesson from Sand: scan direction should alternate per frame, not per row. Alternating per row sorts falling water into striped sheets. A regression test covers it.
 
 **Tier 3 notes.**
@@ -309,7 +309,7 @@ Jekyll doesn't run on Actions deploys, so the `_template/` folder is served norm
   - Host that game on Cloudflare (set headers with a `_headers` file) or itch.io (it has a SharedArrayBuffer setting).
 - If you add a Content-Security-Policy `<meta>` tag, WASM needs `'wasm-unsafe-eval'` in `script-src`.
 - Graphics: WebGL2 works everywhere. WebGPU is available in Chromium and Safari 26, and Firefox is rolling it out platform by platform. Use it through Three.js, Babylon.js or Bevy with a WebGL2 fallback rather than directly.
-- Sand needs neither. Canvas 2D draws the color buffer, then fakes bloom: Rust writes a second buffer with only the glowing cells, JS halves it three times (each halving averages 2×2 pixels) and adds the two blurriest copies on top with `lighter` blending.
+- Sand uses WebGL2 directly (`src/sand/render.ts`, no library): each frame uploads the cell buffer as an integer texture. One pass shades every cell (materials, bevel lighting, water depth, glow by temperature) into a color and a light buffer, a dual-filter blur chain turns the light into bloom, and the last pass scales up crisp, lights the scene with the bloom and adds heat haze. Canvas 2D can't do per-cell shading like this at 60 fps.
 
 ## 9. Implementation plan
 

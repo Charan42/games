@@ -1,8 +1,8 @@
 import wasmUrl from '@wasm/sand.wasm?url'
 import { mountBar } from '../shared/bar.ts'
-import { fitCanvas } from '../shared/canvas.ts'
 import { newSeed } from '../shared/rng.ts'
 import meta from './meta.ts'
+import { createRenderer } from './render.ts'
 
 // The simulation is Rust (crate/src/lib.rs) compiled to WebAssembly. It only trades numbers
 // with JS, so there's no generated glue code: these are its exports.
@@ -12,11 +12,10 @@ interface Sand {
   step(): void
   paint(x0: number, y0: number, x1: number, y1: number, radius: number, kind: number): void
   clear(): void
-  pixels(): number // address of the w × h RGBA color buffer
-  glow(): number // address of the RGBA light buffer (fire and lava only)
+  view(): number // address of the w × h × 4-byte buffer the renderer draws from
 }
 
-// Toolbar order, which is also the 1–9 keys. Ids match the element constants in crate/src/lib.rs.
+// Toolbar order, which is also the 1–9 and 0 keys. Ids match the element constants in crate/src/lib.rs.
 const TOOLS = [
   { id: 2, name: 'Sand', color: '#e2c275' },
   { id: 3, name: 'Water', color: '#2f7fe0' },
@@ -26,10 +25,11 @@ const TOOLS = [
   { id: 8, name: 'Oil', color: '#6b5238' },
   { id: 7, name: 'Lava', color: '#ff5a1f' },
   { id: 5, name: 'Fire', color: '#ffb020' },
+  { id: 14, name: 'Ice', color: '#bfe6ff' },
   { id: 0, name: 'Erase', color: '' },
 ]
 const BRUSHES = [2, 5, 10] // radius in cells
-// ponytail: cap measured on a desktop CPU (0.5 ms per step at 90k cells); retune after phone testing
+// ponytail: cap measured on a desktop CPU (1.5 ms per step at 128k cells, heat included); retune after phone testing
 const MAX_CELLS = 250_000
 const STEP_MS = 1000 / 60 // 60 steps a second, whatever the screen's refresh rate
 
@@ -58,45 +58,23 @@ const { instance } = await WebAssembly.instantiateStreaming(fetch(wasmUrl))
 const sand = instance.exports as unknown as Sand
 sand.init(W, H, newSeed())
 
-// Views straight into WASM memory, no copying. Made once: the sim never allocates after init.
-const image = (ptr: number) => new ImageData(new Uint8ClampedArray(sand.memory.buffer, ptr, W * H * 4), W, H)
-const colors = image(sand.pixels())
-const light = image(sand.glow())
+// A view straight into WASM memory, no copying. Made once: the sim never allocates after init.
+const view = new Uint8Array(sand.memory.buffer, sand.view(), W * H * 4)
+const draw = createRenderer(canvas, W, H)
+if (!draw) board.textContent = 'This sandbox needs WebGL 2, which this browser doesn’t have.'
+const render = () => draw?.(view, performance.now() / 1000)
 
-// Glow: blur the light buffer by halving it three times (each halving averages 2×2 pixels),
-// then add the two blurriest copies on top of the picture.
-function layer(w: number, h: number) {
-  const c = document.createElement('canvas')
-  c.width = Math.max(1, w)
-  c.height = Math.max(1, h)
-  const ctx = c.getContext('2d')!
-  ctx.globalCompositeOperation = 'copy'
-  return { c, ctx }
-}
-const full = layer(W, H)
-const half = layer(W / 2, H / 2)
-const quarter = layer(W / 4, H / 4)
-const eighth = layer(W / 8, H / 8)
-
-const screen = fitCanvas(canvas, W, H, draw)
-
-function draw() {
-  const { ctx, cell } = screen
-  const [w, h] = [W * cell, H * cell]
-  full.ctx.putImageData(colors, 0, 0)
-  ctx.globalCompositeOperation = 'source-over'
-  ctx.imageSmoothingEnabled = false
-  ctx.drawImage(full.c, 0, 0, w, h)
-
-  full.ctx.putImageData(light, 0, 0)
-  half.ctx.drawImage(full.c, 0, 0, half.c.width, half.c.height)
-  quarter.ctx.drawImage(half.c, 0, 0, quarter.c.width, quarter.c.height)
-  eighth.ctx.drawImage(quarter.c, 0, 0, eighth.c.width, eighth.c.height)
-  ctx.globalCompositeOperation = 'lighter'
-  ctx.imageSmoothingEnabled = true
-  ctx.drawImage(quarter.c, 0, 0, w, h)
-  ctx.drawImage(eighth.c, 0, 0, w, h)
-}
+// The largest board of whole CSS pixels per cell that fits, drawn at the screen's resolution.
+new ResizeObserver(() => {
+  const cell = Math.max(1, Math.floor(Math.min(board.clientWidth / W, board.clientHeight / H)))
+  // ponytail: capped at 2x like shared/canvas.ts; 3x screens cost 2.25x the pixels for little gain
+  const dpr = Math.min(devicePixelRatio, 2)
+  canvas.style.width = `${cell * W}px`
+  canvas.style.height = `${cell * H}px`
+  canvas.width = Math.round(cell * W * dpr)
+  canvas.height = Math.round(cell * H * dpr)
+  render()
+}).observe(board)
 
 // Each finger (or the mouse) paints a line from where it was to where it is now.
 const strokes = new Map<number, { x: number; y: number }>()
@@ -149,7 +127,7 @@ tools.addEventListener('pointerdown', press)
 tools.addEventListener('click', e => e.detail === 0 && press(e))
 addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey || document.querySelector('dialog[open]')) return
-  const n = Number(e.key)
+  const n = e.key === '0' ? 10 : Number(e.key)
   if (n >= 1 && n <= TOOLS.length) select(n - 1)
   else if (e.key === 'b') setBrush((brush + 1) % BRUSHES.length)
   else if (e.key === 'c') sand.clear()
@@ -165,6 +143,7 @@ function scene() {
   sand.paint(X(0.5), ledge, X(0.95), ledge, 2, 1) // flat wall
   sand.paint(X(0.6), ledge - 7, X(0.85), ledge - 7, 4, 4) // wood resting on it
   sand.paint(X(0.02), H - 1, X(0.4), H - 1, 1, 6) // plants along the floor
+  sand.paint(X(0.7), H - 6, X(0.85), H - 6, 5, 14) // an ice block for the water to reach
   for (let i = 0; i < 3; i++) {
     // loose elements go on scattered, so pour them a few times
     sand.paint(X(0.72), Y(0.08), X(0.72), Y(0.08), 5, 7) // lava above the wood
@@ -185,7 +164,7 @@ requestAnimationFrame(function frame(now) {
       sand.step()
       lag -= STEP_MS
     }
-    draw()
+    render()
   }
   requestAnimationFrame(frame)
 })
