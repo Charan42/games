@@ -1,6 +1,6 @@
 # Games: Architecture and Implementation Plan
 
-> **Status:** draft for review · updated 2026-09-27 (mobile-first) · nothing built yet
+> **Status:** Phase 1 built on branch `phase-1` (2026-09-27) · not deployed yet
 > **Site:** `https://charan42.github.io/games/` (repo `Charan42/games`, GitHub Pages)
 > **Next step:** answer [§12 Open questions](#12-open-questions), then start [Phase 1](#phase-1-foundation--first-game).
 
@@ -44,7 +44,7 @@ The cost is a full page load between the hub and a game. Cross-document View Tra
 | React | **Allowed per game, never required** | Useful for UI-heavy games. Adds nothing to a canvas game loop. |
 | Libraries, per game | PixiJS or Phaser (2D), Three.js (3D, WebGPU with WebGL2 fallback), Rapier (physics, WASM), ZzFX (~1 KB sound effects) | Only the game that imports a library downloads it. |
 | WebAssembly | **Rust + wasm-pack** (`--target web`); Emscripten for C/C++; engine web exports | See §8. |
-| Tests | **Vitest** for game logic, **one Playwright smoke test** across all pages, run on desktop and as an emulated phone | Starts in Phase 2, when there's something to test. |
+| Tests | **node:test** (built into Node, runs the TypeScript directly) for game logic; **one Playwright smoke test** across all pages, run on desktop and as an emulated phone | Logic tests since Phase 1, with no extra dependency. The smoke test starts in Phase 2. |
 | Deploy | **GitHub Actions → Pages** (`upload-pages-artifact` + `deploy-pages`) | The official route. Free for public repos, no `gh-pages` branch. |
 | Tooling | **npm** and **Node 22** (already installed), pinned in `.nvmrc` | Nothing extra to install. |
 
@@ -84,12 +84,14 @@ games/                         repo root
 │  ├─ shared/                  no index.html, so not a page
 │  │  ├─ types.ts              GameMeta (§5)
 │  │  ├─ input.ts              swipe, tap, drag, keys, gamepad → game actions (§6)
-│  │  ├─ bar.ts                top bar: ← All games · title · fullscreen · mute · help
+│  │  ├─ bar.ts                top bar: ← All games · title · fullscreen · help
 │  │  ├─ storage.ts            per-game localStorage keys (best score, settings)
+│  │  ├─ canvas.ts             sizes a grid canvas to the screen
+│  │  ├─ rng.ts                seeded random numbers (rule 7)
 │  │  └─ base.css              mobile-first layout, gesture blocking, light/dark
 │  ├─ _template/               starter game; built but unlisted (wip: true)
 │  ├─ snake/                   one folder = one game → /games/snake/
-│  │  └─ index.html  main.ts  meta.ts  thumb.webp
+│  │  └─ index.html  main.ts  meta.ts  logic.ts  logic.test.ts
 │  └─ sand/                    a WASM game (Phase 3)
 │     ├─ index.html  main.ts  meta.ts  thumb.webp
 │     ├─ crate/                Rust source
@@ -105,7 +107,7 @@ games/                         repo root
 The whole build config is below. Finding the pages takes two lines of Node, not a plugin:
 
 ```ts
-// vite.config.ts (sketch, tested with Vite 8.3.1 in a scratch project)
+// vite.config.ts
 import { defineConfig } from 'vite'
 import { existsSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -144,7 +146,7 @@ A game is a folder under `src/` that follows these rules:
 2. **It has `meta.ts`:** its hub card, written as `export default { … } satisfies GameMeta`. The file is pure data and imports only the type, so the hub never loads game code.
 3. **It may have `thumb.webp`:** square, about 512×512, so it suits a two-column phone grid and portrait games alike. Without one, the hub shows a title card.
 4. **It uses relative URLs only** (`./sprite.png`, `../`), so it works under any base path.
-5. **It prefixes storage keys with its slug** through `shared/storage.ts` (`snake:best`). All games share one origin (see §11).
+5. **It prefixes storage keys with its slug** through `shared/storage.ts` (`games:snake:best`; the slug comes from the URL). All games share one origin (see §11).
 6. **It's touch-first.** With `input: 'touch'`, the game is fully playable by touch on a phone held upright (or sideways, if `landscape: true`), and keyboard and mouse trigger the same actions. With `input: 'controller'`, it needs a keyboard or gamepad and is listed in the hub's "Keyboard & controller" section. Every game pauses when the tab is hidden and honors `prefers-reduced-motion`. Details are in §6.
 7. **Its logic is pure and seeded:** `step(state, input) → state`, kept separate from drawing, with a seeded random number generator instead of `Math.random()` for anything that affects play.
 
@@ -238,16 +240,15 @@ Later additions:
 
 Layout is phone first. A CSS grid with `repeat(auto-fill, minmax(150px, 1fr))` gives two columns on most phones and more on wider screens. Light/dark follows `prefers-color-scheme`, and thumbnails are lazy-loaded with fixed dimensions so the page doesn't jump.
 
-**Game bar.** `shared/bar.ts` is about 50 lines, with no framework. It has four controls:
+**Game bar.** `shared/bar.ts` is about 40 lines, with no framework. It has three controls:
 
 - ← All games (`href="../"`)
-- Fullscreen (Fullscreen API; hidden where unsupported, such as iPhone Safari)
-- Mute (a shared setting)
-- Help (a native `<dialog>` showing `meta.controls`)
+- Fullscreen (Fullscreen API). Hidden where unsupported, such as iPhone Safari, and inside the installed app.
+- Help (a native `<dialog>` showing `meta.controls`). Opening it pauses the game.
 
-It also shows the game title and records "last played" for the hub. On phones it shrinks to icons.
+It also shows the game title. On phones it shrinks to icons. Two more features come when something needs them: a mute button with the first game that has sound, and recording "last played" with the hub's "Continue playing" row in Phase 2.
 
-**Shared code.** Code starts inside its game and moves to `shared/` once a second game needs it. Input comes first, since every game needs it: `input.ts` turns swipe, tap, drag, keys and gamepad into game actions. After that, likely a fixed-timestep game loop, a canvas that resizes correctly on high-DPI screens, audio unlock and mute, and the seeded random number generator.
+**Shared code.** Code starts inside its game and moves to `shared/` once a second game needs it. Snake and the template already share input, canvas sizing, the seeded random number generator and storage. Input handles swipes and keys so far; tap, drag and gamepad get added when a game needs them. Next in line: a fixed-timestep game loop when a second real-time game arrives, then audio unlock and mute.
 
 **Deploy.** Set repo Settings → Pages → Source to **GitHub Actions**. On each push to `main`, the workflow runs these steps:
 
@@ -319,13 +320,22 @@ Every phase ends with the site deployed and working.
 
 ### Phase 1: foundation + first game
 
-- [ ] `package.json` (`"type": "module"`; scripts `dev`, `build`, `preview`), `tsconfig.json` (strict), `.nvmrc`, `.gitignore`, `vite.config.ts`.
-- [ ] `shared/types.ts`, `shared/bar.ts`, and `shared/base.css` with the mobile-first basics from §6: `dvh` layout, safe areas, gesture blocking.
-- [ ] Hub: `index.html` + `hub.ts` card grid, laid out for phones first.
-- [ ] Web app manifest + icons, so the site can be installed and played without browser UI.
-- [ ] Game #1, **Snake**: Canvas 2D, swipe to steer, arrow keys too, best score. It's small, but it exercises the game loop, touch and keyboard input, storage and resizing.
-- [ ] `src/_template/`: a minimal working touch game that follows §5 and §6.
-- [ ] `public/404.html`, favicon, `deploy.yml`.
+Built on branch `phase-1`. Tested in headless Chrome as an emulated phone and on desktop:
+
+- Touch swipes and keyboard control work.
+- Pausing, game over and restart work.
+- The page doesn't scroll during play.
+- Chrome reports the site as installable.
+
+Still to do: enable Pages, merge to `main`, and play it on a real phone.
+
+- [x] `package.json` (`"type": "module"`; scripts `dev`, `build`, `preview`, `test`), `tsconfig.json` (strict), `.nvmrc`, `.gitignore`, `vite.config.ts`.
+- [x] `shared/types.ts`, `shared/bar.ts`, and `shared/base.css` with the mobile-first basics from §6: `dvh` layout, safe areas, gesture blocking.
+- [x] Hub: `index.html` + `hub.ts` card grid, laid out for phones first.
+- [x] Web app manifest + icons, so the site can be installed and played without browser UI.
+- [x] Game #1, **Snake**: Canvas 2D, swipe to steer, arrow keys too, best score. It's small, but it exercises the game loop, touch and keyboard input, storage and resizing. Its logic has `node:test` tests.
+- [x] `src/_template/`: a minimal working touch game that follows §5 and §6.
+- [x] `public/404.html`, favicon, `deploy.yml`.
 - **Done when:**
   - `charan42.github.io/games/` lists Snake, and the hub looks right on a phone.
   - On a real phone held upright, `/games/snake/` plays by touch without the page scrolling, zooming or refreshing mid-game.
@@ -338,7 +348,7 @@ Every phase ends with the site deployed and working.
 - [ ] 3–5 touch games from the backlog below, mixing Canvas and DOM games, plus one keyboard & controller game (the platformer) so that hub section has something in it.
 - [ ] Move `input.ts` into `shared/` when the second game needs it, then other helpers as they get reused.
 - [ ] Hub: "Keyboard & controller" section, tag filter, search, "Continue playing", best scores, "New" badge.
-- [ ] Tests: Vitest for pure game logic, plus one Playwright test that opens the hub and every page, on desktop and as an emulated phone, and fails on console errors. Both run in CI before deploy.
+- [ ] Tests: a `node:test` file for each game's logic (as Snake has), plus one Playwright test that opens the hub and every page, on desktop and as an emulated phone, and fails on console errors. Both run in CI before deploy.
 - [ ] Eruda on `?debug` for debugging on phones.
 - [ ] Accessibility pass: keyboard navigation, visible focus, reduced motion, 44 px tap targets.
 - **Done when:**
@@ -478,7 +488,7 @@ Pick one vendor to keep the number of accounts down. Cloudflare covers overflow 
 
 ## 12. Open questions
 
-Defaults are in parentheses. Phase 1 can start with the defaults.
+Defaults are in parentheses. Phase 1 was built with the defaults.
 
 1. **URL:** keep `charan42.github.io/games/`, or use a custom domain or free subdomain? (Keep it. The relative-path build works either way; this only affects absolute URLs in OG tags and the sitemap, in Phase 4.)
 2. **Games:** Snake first, then which? (The backlog order.)
