@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en" class="game">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Dots and Boxes · Games</title>
+  <meta name="description" content="Close boxes, go again, and never hand over a chain. Versus the computer or a friend.">
+  <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../shared/base.css">
+</head>
+<body>
+  <main class="play">
+    <p class="hud"><span>Blue <b id="s1">0</b></span><span id="status" aria-live="polite"></span><span>Red <b id="s2">0</b></span></p>
+    <div class="board">
+      <canvas role="img" aria-label="Dots and boxes board"></canvas>
+    </div>
+    <div class="controls">
+      <button type="button" class="chip" id="opponent"></button>
+      <button type="button" class="chip" id="new">New game</button>
+    </div>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
