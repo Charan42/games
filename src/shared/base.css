@@ -131,6 +131,38 @@ html.game body {
 .overlay strong { font-size: 1.6rem; }
 .overlay span { color: rgb(255 255 255 / 0.75); }
 
+/* A row of secondary buttons under the board: new game, opponent, level, tools. */
+.controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.chip[aria-pressed='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.chip:disabled { opacity: 0.45; cursor: default; }
+
+/* DOM boards: the largest cols × rows grid of square cells that fits the free space.
+   Set --cols and --rows on the .grid; --cell is one cell's size, for fonts and gaps. */
+.board.fit { container-type: size; }
+.fit .grid {
+  --cell: min(100cqw / var(--cols), 100cqh / var(--rows));
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); /* 1fr alone grows to fit tall content */
+  width: calc(var(--cell) * var(--cols));
+  height: calc(var(--cell) * var(--rows));
+  font-size: calc(var(--cell) * 0.5);
+}
+
 dialog {
   width: min(92vw, 420px);
   padding: 20px;
