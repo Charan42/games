@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" class="game">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Starfighter · Games</title>
+  <meta name="description" content="A bullet-hell shooter: weave through storms of fire, graze bullets for points, and take down a boss every stage.">
+  <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../shared/base.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="play">
+    <p class="hud">
+      <span>Score <b id="score">0</b></span>
+      <span>Stage <b id="stage">1</b></span>
+      <span class="ships" title="Ships left"><b id="lives"></b></span>
+      <span>Best <b id="best">0</b></span>
+    </p>
+    <div class="board">
+      <canvas role="img" aria-label="The battlefield"></canvas>
+      <button type="button" class="overlay">
+        <strong>Starfighter</strong>
+        <span>Drag anywhere: your ship moves with your finger.</span>
+        <span>Only the dot in its middle can be hit.</span>
+        <span class="go">Tap to start</span>
+      </button>
+    </div>
+    <div class="controls">
+      <span class="chain" id="chain"></span>
+      <button type="button" class="chip bomb" id="bomb">Bomb <b id="bombs">2</b></button>
+    </div>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
