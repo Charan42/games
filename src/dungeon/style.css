@@ -1,0 +1,46 @@
+.play { gap: 6px; }
+.board canvas { border-radius: 10px; background: #07080b; }
+
+/* Health, level, floor and gold in one line. */
+.stats { display: flex; align-items: center; gap: 12px; width: 100%; max-width: 640px; font-size: 0.9rem; font-variant-numeric: tabular-nums; color: var(--muted); }
+.stats b { color: var(--fg); }
+.hp { position: relative; flex: 1; min-width: 90px; height: 20px; overflow: hidden; border-radius: 6px; background: rgb(239 68 68 / 0.2); }
+.hp i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #dc2626, #ef4444); transition: width 0.2s; }
+.hp.ok i { background: linear-gradient(90deg, #16a34a, #22c55e); }
+.hp span { position: relative; display: block; padding: 0 8px; line-height: 20px; color: #fff; font-weight: 700; font-size: 0.8rem; text-shadow: 0 1px 2px rgb(0 0 0 / 0.6); }
+.lv { display: grid; gap: 2px; }
+.lv b::before { content: 'Lv '; font-weight: 400; color: var(--muted); }
+.xp { display: block; width: 36px; height: 3px; border-radius: 2px; background: var(--line); }
+.xp i { display: block; height: 100%; border-radius: 2px; background: #eab308; }
+.gold b::before { content: '◆ '; color: #eab308; }
+#status { display: flex; gap: 4px; }
+#status i { padding: 1px 6px; border-radius: 6px; font-size: 0.7rem; font-style: normal; font-weight: 700; color: #fff; }
+#status .haste { background: #0284c7; }
+#status .poison { background: #65a30d; }
+#status .blind { background: #52525b; }
+
+/* The last few messages, newest at the bottom and brightest. */
+.log { width: 100%; max-width: 640px; height: calc(3 * 1.35em); margin: 0; padding: 0; overflow: hidden; list-style: none; font-size: 0.85rem; line-height: 1.35; }
+.log li { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--muted); opacity: 0.6; }
+.log li.new { opacity: 1; }
+.log .good { color: #16a34a; }
+.log .bad { color: #dc2626; }
+.log .loot { color: #b45309; }
+@media (prefers-color-scheme: dark) {
+  .log .good { color: #4ade80; }
+  .log .bad { color: #f87171; }
+  .log .loot { color: #fbbf24; }
+}
+.controls .chip { padding: 0 10px; }
+
+/* The pack. */
+#pack { max-height: 86dvh; }
+#pack .gear { color: var(--muted); font-size: 0.9rem; }
+#pack .items { display: grid; gap: 6px; margin: 0 0 14px; padding: 0; list-style: none; }
+#pack li { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+#pack li canvas { flex: none; width: 32px; height: 32px; border-radius: 6px; background: #1c1917; }
+#pack li span { flex: 1; min-width: 0; font-size: 0.9rem; }
+#pack li .chip { min-width: 60px; }
+#pack .empty { color: var(--muted); }
+dialog .choices { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+dialog .scores { color: var(--muted); font-size: 0.9rem; }
