@@ -1,6 +1,6 @@
 # Games: Architecture and Implementation Plan
 
-> **Status:** Phase 1 live · Sand (Rust → WebAssembly) live · Phase 2 under way: 2048, Mines, Connect Four, Reversi, Dots and Boxes, Tower Defense added (2026-09-28)
+> **Status:** Phase 1 live · Sand (Rust → WebAssembly) live · Phase 2 under way: 2048, Mines, Connect Four, Reversi, Dots and Boxes, Tower Defense added (2026-09-28) · Four bigger games added (2026-09-29): Chess (own Rust engine in a Web Worker), Dungeon (roguelike), Runner (3D, Three.js), Starfighter (bullet hell)
 > **Site:** `https://charan42.github.io/games/` (repo `Charan42/games`, GitHub Pages)
 > **Next step:** answer [§12 Open questions](#12-open-questions), then start [Phase 1](#phase-1-foundation--first-game).
 
@@ -42,7 +42,7 @@ The cost is a full page load between the hub and a game. Cross-document View Tra
 | Rendering | **Canvas 2D** for action games; **DOM + CSS** for grid, board, card and word games | Built into the browser. The DOM gives crisp text, accessibility and CSS animations for free. |
 | Input | **Pointer Events** (touch, mouse and pen in one API) + keyboard; **Gamepad API** for controller games | Built into the browser. One code path covers touch and mouse. |
 | React | **Allowed per game, never required** | Useful for UI-heavy games. Adds nothing to a canvas game loop. |
-| Libraries, per game | PixiJS or Phaser (2D), Three.js (3D, WebGPU with WebGL2 fallback), Rapier (physics, WASM), ZzFX (~1 KB sound effects) | Only the game that imports a library downloads it. |
+| Libraries, per game | PixiJS or Phaser (2D), Three.js (3D; Runner uses it), Rapier (physics, WASM), ZzFX (~1 KB sound effects) | Only the game that imports a library downloads it. Three.js is split into its own chunk (`codeSplitting` group in `vite.config.ts`), so it stays cached when game code changes and any later 3D game shares it. |
 | WebAssembly | **Rust**, built with plain `cargo`; wasm-bindgen only when a game needs more than numbers across the boundary; Emscripten for C/C++; engine web exports | See §8. |
 | Tests | **node:test** (built into Node, runs the TypeScript directly) for game logic; **one Playwright smoke test** across all pages, run on desktop and as an emulated phone | Logic tests since Phase 1, with no extra dependency. The smoke test starts in Phase 2. |
 | Deploy | **GitHub Actions → Pages** (`upload-pages-artifact` + `deploy-pages`) | The official route. Free for public repos, no `gh-pages` branch. |
@@ -250,6 +250,8 @@ It also shows the game title. On phones it shrinks to icons. Two more features c
 
 **Shared code.** Code starts inside its game and moves to `shared/` once a second game needs it. Snake and the template already share input, canvas sizing, the seeded random number generator and storage. Input handles swipes and keys so far; tap, drag and gamepad get added when a game needs them. Next in line: a fixed-timestep game loop when a second real-time game arrives, then audio unlock and mute.
 
+**Balance by bot.** Rule 7 makes a game cheap to play thousands of times in Node. Runner's tests include a lookahead bot that must run 3 km on 20 seeds, which proves the track generator never builds an impossible stretch. Dungeon was tuned with a bot that explores, fights and drinks potions over 60 seeds (it found an experience exploit in splitting slimes), and Starfighter against one that never dodges (dies every 5–15 s) and one that dodges well (survives). The tuning bots are throwaway scripts; the solvability bot is a test.
+
 **Deploy.** Set repo Settings → Pages → Source to **GitHub Actions**. On each push to `main`, the workflow runs these steps:
 
 1. Check out the repo.
@@ -291,6 +293,14 @@ Jekyll doesn't run on Actions deploys, so the `_template/` folder is served norm
 - The release profile favors speed (`opt-level = 3`, LTO, one codegen unit, `panic = "abort"`). Sand is 33 KB, 13 KB gzipped.
 - Measured on a desktop CPU: 1.0 ms per step for a phone-sized grid (57k cells) and 2.5 ms for 250k cells, including heat conduction and writing the cell buffer. The heat pass is over half of that; it looks up a per-element table and skips pairs at the same temperature (most of the air).
 - Lesson from Sand: scan direction should alternate per frame, not per row. Alternating per row sorts falling water into striped sheets. A regression test covers it.
+
+**Tier 2, second crate: Chess.** `src/chess/crate` builds next to Sand with the same `npm run wasm`; nothing in the pipeline changed.
+
+- The engine is a 0x88 board with full rules (castling, en passant, promotion, fifty moves, threefold repetition, dead positions), checked against published perft counts for five positions before the search was written. The search is iterative-deepening PVS with a transposition table, quiescence, null-move pruning, late-move reductions, killers and history. About 1.2M positions a second natively and 900k in V8; 74 KB, 38 KB gzipped (a 16 KB Zobrist table is static data).
+- Its one import is a clock (`env.now`, from `performance.now()`), so it can stop on time. On `wasm32-unknown-unknown` the `extern` block needs `#[link(wasm_import_module = "env")]`, or lld fails on the undefined symbol.
+- **Workers:** the page compiles the module once (`WebAssembly.compileStreaming`) and posts the compiled `WebAssembly.Module` to a worker, so the file downloads once and there are two instances: the rules on the main thread, the search in the worker. Each request carries the whole move list, so the worker keeps no game state and the engine sees repetitions. Vite bundles `new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })` with no config.
+- Levels are depth and time limits plus seeded noise on the root moves' scores. In self-play each level beat the one below it 6 games out of 6 (an ignored test in `search.rs` reruns this).
+- Own engine rather than Stockfish: no GPL code on the site, 38 KB instead of megabytes, and strong enough for phones.
 
 **Tier 3 notes.**
 
@@ -349,6 +359,7 @@ Still to do: enable Pages, merge to `main`, and play it on a real phone.
 ### Phase 2: grow the catalog
 
 - [x] 3–5 touch games from the backlog below, mixing Canvas and DOM games: 2048, Mines, Connect Four (DOM); Dots and Boxes, Tower Defense (Canvas); Reversi (DOM). Board games share `shared/versus.ts` (vs computer easy/hard, or two players on one phone) and a CSS container-query grid (`.board.fit`).
+- [x] Four bigger games (2026-09-29), each with pure seeded rules, `node:test` tests and a phone-first page: **Chess** (Rust engine in a Web Worker, DOM board with SVG pieces), **Dungeon** (roguelike, Canvas 2D), **Runner** (3D, Three.js), **Starfighter** (bullet hell, Canvas 2D). All 14 pages were checked in headless Chrome as a phone and on desktop with no console errors; the Playwright script isn't in CI yet (next item).
 - [ ] One keyboard & controller game (the platformer) so that hub section has something in it.
 - [ ] Move `input.ts` into `shared/` when the second game needs it, then other helpers as they get reused.
 - [ ] Hub: "Keyboard & controller" section, tag filter, search, "Continue playing", best scores, "New" badge.
@@ -369,6 +380,7 @@ Still to do: enable Pages, merge to `main`, and play it on a real phone.
   - [x] `npm run build` compiles the Rust before `vite build`, so CI builds it from source.
   - [x] Touch-first page: element toolbar, multi-finger drawing, hold to pour, glow for fire and lava, and a starter scene. Tested in headless Chrome as a phone and on desktop at 60 fps.
   - [ ] Loading indicator. The module is 12 KB, so it isn't needed yet; add one with the first multi-MB engine game.
+- [x] Tier 2, **Chess**: a second crate, and the first Web Worker (see §8).
 - [ ] Learning exercise: port Connect Four's AI from TS to Rust and measure the difference.
 - [ ] Tier 3, when a game calls for it.
 - **Done when:** a Rust game builds from source in CI and plays on Pages.
@@ -404,8 +416,10 @@ Leaderboards, multiplayer and comments are covered in §10. Each uses a free-tie
 | Tower Defense (built) | Touch: tap to build | Canvas 2D, fixed ticks | Real-time strategy; balance tuned against a bot |
 | Physics puzzle | Touch: drag | Rapier (WASM from npm) | Tier 1 |
 | Falling sand (**Sand**, built) | Touch: drag to paint | Rust → WASM + Canvas | Tier 2 |
-| Chess vs Stockfish | Touch: tap a piece, then a square | Stockfish WASM in a Web Worker | Workers + a WASM engine |
-| 3D runner | Touch: swipe between lanes | Three.js, WebGPU renderer | 3D with a WebGL2 fallback |
+| Chess (**Chess**, built) | Touch: tap a piece, then a square, or drag | Own Rust engine → WASM in a Web Worker | Workers + a WASM engine; no Stockfish (GPL, megabytes) needed |
+| 3D runner (**Runner**, built) | Touch: swipe between lanes | Three.js `WebGLRenderer`, shapes and canvas textures only | 3D on phones. WebGL2 runs everywhere and this scene gains nothing from WebGPU, whose build of Three.js is larger |
+| Roguelike (**Dungeon**, built) | Touch: tap to walk, swipe to step | Canvas 2D, pure seeded rules | Procedural floors, field of view, monster AI, save and resume, a daily dungeon |
+| Bullet-hell shooter (**Starfighter**, built) | Touch: relative drag, anywhere | Canvas 2D, additive glow sprites | A hundred-plus bullets at 60 fps; bosses with phases |
 | Online Connect Four | Touch: tap a column | Trystero (WebRTC) | Multiplayer with no server |
 | Platformer | Controller: keys or gamepad | Canvas 2D or Phaser | The keyboard & controller section, Gamepad API |
 | Twin-stick arena shooter | Controller: gamepad sticks, or keys + mouse | Rust → WASM (Tier 2 or 3) | Many entities on screen, analog input |
