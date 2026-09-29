@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en" class="game">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Runner · Games</title>
+  <meta name="description" content="A 3D endless run through a rail yard at dusk. Dodge trains, jump barriers, slide under bars.">
+  <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../shared/base.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="play">
+    <div class="board">
+      <canvas aria-label="The track ahead"></canvas>
+      <div class="status">
+        <p class="score"><b id="score">0</b><small id="best"></small></p>
+        <p class="coins"><i></i><b id="coins">0</b></p>
+        <ul class="powers"></ul>
+      </div>
+      <button type="button" class="overlay"><strong>Runner</strong><span>Swipe to change lanes, up to jump, down to slide.</span><span>Tap to run</span></button>
+    </div>
+  </main>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

@@ -18,6 +18,10 @@ export default defineConfig({
     emptyOutDir: true,
     rolldownOptions: {
       input: Object.fromEntries(pages.map(d => [d === '.' ? 'hub' : d, resolve(root, d, 'index.html')])),
+      // Three.js gets a chunk of its own: it stays cached when a game changes, and any game
+      // that uses it shares the same file. It's most of a 3D game's download, so allow its size.
+      output: { codeSplitting: { groups: [{ name: 'three', test: /node_modules[\\/]three[\\/]/ }] } },
     },
+    chunkSizeWarningLimit: 600,
   },
 })
