@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en" class="game">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Dungeon · Games</title>
+  <meta name="description" content="A roguelike: ten floors, a new dungeon every game, and a dragon guarding the Amulet at the bottom.">
+  <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../shared/base.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="play">
+    <div class="stats">
+      <div class="hp" title="Health"><i></i><span id="hp"></span></div>
+      <span class="lv" title="Level"><b id="level"></b><i class="xp"><i></i></i></span>
+      <span>Floor <b id="depth"></b></span>
+      <span class="gold"><b id="gold"></b></span>
+      <span id="status"></span>
+    </div>
+    <ol class="log" aria-live="polite"></ol>
+    <div class="board">
+      <canvas role="img" aria-label="The dungeon around you"></canvas>
+    </div>
+    <div class="controls">
+      <button type="button" class="chip" id="explore">Explore</button>
+      <button type="button" class="chip" id="rest">Rest</button>
+      <button type="button" class="chip" id="stairs">Stairs</button>
+      <button type="button" class="chip" id="bag">Pack</button>
+      <button type="button" class="chip" id="map" aria-pressed="false">Map</button>
+      <button type="button" class="chip" id="menu" aria-label="New game">⋯</button>
+    </div>
+  </main>
+
+  <dialog id="pack">
+    <h2>Pack</h2>
+    <p class="gear"></p>
+    <ul class="items"></ul>
+    <form method="dialog"><button class="btn">Close</button></form>
+  </dialog>
+
+  <dialog id="newgame">
+    <h2>New game</h2>
+    <p>Start a fresh dungeon, or today’s: the same dungeon for everyone, all day.</p>
+    <p class="scores"></p>
+    <form method="dialog" class="choices">
+      <button class="chip" value="cancel">Keep playing</button>
+      <button class="chip" value="daily">Today’s dungeon</button>
+      <button class="btn" value="new">New dungeon</button>
+    </form>
+  </dialog>
+
+  <dialog id="end">
+    <h2></h2>
+    <p class="cause"></p>
+    <p class="scores"></p>
+    <form method="dialog" class="choices">
+      <button class="chip" value="daily">Today’s dungeon</button>
+      <button class="btn" value="new">New dungeon</button>
+    </form>
+  </dialog>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
