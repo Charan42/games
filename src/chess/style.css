@@ -1,0 +1,135 @@
+/* Board colors are fixed, like a real board; everything around it follows the page theme. */
+.chess {
+  --light: #efe0c4;
+  --dark: #b08860;
+  position: relative;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+}
+.chess > i:nth-child(1) { border-top-left-radius: 8px; }
+.chess > i:nth-child(8) { border-top-right-radius: 8px; }
+.chess > i:nth-child(57) { border-bottom-left-radius: 8px; }
+.chess > i:nth-child(64) { border-bottom-right-radius: 8px; }
+.chess > i { position: relative; background: var(--light); }
+.chess > i.dark { background: var(--dark); }
+.chess > i.last { background-image: linear-gradient(rgb(250 204 21 / 0.42), rgb(250 204 21 / 0.42)); }
+.chess > i.sel { background-image: linear-gradient(rgb(34 197 94 / 0.5), rgb(34 197 94 / 0.5)); }
+.chess > i.hover { box-shadow: inset 0 0 0 calc(var(--cell) * 0.06) rgb(255 255 255 / 0.85); }
+.chess > i.cursor { box-shadow: inset 0 0 0 calc(var(--cell) * 0.06) #2563eb; }
+.chess > i.check { background-image: radial-gradient(circle, #ef4444 0, rgb(239 68 68 / 0.7) 35%, transparent 72%); }
+/* Where the selected piece can go: a dot on an empty square, a ring around a capture. */
+.chess > i.dot::after, .chess > i.cap::after {
+  content: '';
+  position: absolute;
+  inset: 34%;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.22);
+  z-index: 2;
+  pointer-events: none;
+}
+.chess > i.cap::after { inset: 3%; background: none; border: calc(var(--cell) * 0.08) solid rgb(0 0 0 / 0.22); }
+/* Coordinates in the corners of the edge squares. */
+.chess > i[data-rank]::before, .chess > i > s {
+  position: absolute;
+  font-size: calc(var(--cell) * 0.2);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--dark);
+  text-decoration: none;
+}
+.chess > i.dark[data-rank]::before, .chess > i.dark > s { color: var(--light); }
+.chess > i[data-rank]::before { content: attr(data-rank); top: 4%; left: 5%; }
+.chess > i > s { right: 5%; bottom: 3%; }
+
+/* Pieces sit on their own layer and slide between squares. */
+.layer { position: absolute; inset: 0; pointer-events: none; }
+.pc {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12.5%;
+  height: 12.5%;
+  transition: transform 0.18s ease-out, opacity 0.18s;
+  z-index: 1;
+}
+.pc svg, .promo svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.pc.drag { transition: none; z-index: 5; scale: 1.18; filter: drop-shadow(0 6px 6px rgb(0 0 0 / 0.35)); }
+.pc.gone { opacity: 0; }
+.w { --fill: #fff; --line: #23201c; --detail: #23201c; }
+.b { --fill: #2f2b28; --line: #15120f; --detail: #e9e2d6; }
+.pc use, .promo use, .taken use {
+  fill: var(--fill);
+  stroke: var(--line);
+  stroke-width: 3.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+symbol .d { fill: none; stroke: var(--detail); }
+symbol .e { fill: var(--detail); stroke: none; }
+@media (prefers-reduced-motion: reduce) { .pc { transition: none; } }
+
+/* Promotion: four big choices over the middle of the board. */
+.promo {
+  display: flex;
+  place-self: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.45);
+  z-index: 6;
+}
+.promo button { width: 64px; height: 64px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--light, #efe0c4); cursor: pointer; }
+
+.hud { justify-content: center; min-height: 1.45em; font-weight: 600; color: var(--fg); }
+.hud.thinking { animation: pulse 1s ease-in-out infinite alternate; }
+@keyframes pulse { to { opacity: 0.45; } }
+
+/* The board with a player's row above and below it, all as wide as the board. */
+.stage { display: flex; flex-direction: column; gap: 6px; place-self: center; }
+.fit .chess { --cell: min(100cqw / 8, (100cqh - 60px) / 8); }
+.player { display: flex; align-items: center; gap: 8px; height: 24px; font-size: 0.9rem; white-space: nowrap; }
+.player b { font-weight: 600; }
+.player.turn b::after { content: ''; display: inline-block; width: 8px; height: 8px; margin-left: 6px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
+.taken { display: flex; align-items: center; color: var(--muted); font-variant-numeric: tabular-nums; }
+.taken svg { width: 20px; height: 20px; margin-right: -6px; }
+.taken small { margin-left: 10px; font-size: 0.85rem; }
+
+/* The move list scrolls sideways, newest move kept in view. */
+.moves {
+  display: flex;
+  gap: 12px;
+  width: min(100%, 640px);
+  min-height: 28px;
+  margin: 0;
+  padding: 2px 4px;
+  overflow-x: auto;
+  list-style: none;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+.moves li { display: flex; gap: 6px; }
+.moves li span { color: var(--muted); }
+.moves i { font-style: normal; }
+.moves .now { font-weight: 700; color: var(--accent); }
+
+#setup form { display: block; }
+#setup fieldset { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 14px; padding: 0; border: 0; }
+#setup fieldset:disabled { opacity: 0.45; }
+#setup legend { margin-bottom: 6px; color: var(--muted); font-size: 0.9rem; }
+#setup label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+}
+#setup label:has(:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+#setup label:has(:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+#setup input { position: absolute; opacity: 0; pointer-events: none; }
+#setup .actions { display: flex; justify-content: flex-end; gap: 8px; }
