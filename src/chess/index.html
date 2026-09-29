@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en" class="game">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Chess · Games</title>
+  <meta name="description" content="Full chess against an engine written in Rust, thinking in WebAssembly. Three levels, or a friend.">
+  <meta name="theme-color" content="#f5f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="stylesheet" href="../shared/base.css">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="play">
+    <p class="hud" id="status" aria-live="polite">Loading…</p>
+    <div class="board fit">
+      <div class="stage">
+        <div class="player" id="top"><b></b><span class="taken"></span></div>
+        <div class="grid chess" style="--cols: 8; --rows: 8" role="img" aria-label="Chess board">
+          <div class="layer"></div>
+        </div>
+        <div class="player" id="bottom"><b></b><span class="taken"></span></div>
+      </div>
+      <div class="promo" hidden role="dialog" aria-label="Promote to"></div>
+    </div>
+    <ol class="moves" aria-label="Moves"></ol>
+    <div class="controls">
+      <button type="button" class="chip" id="undo">Undo</button>
+      <button type="button" class="chip" id="flip">Flip</button>
+      <button type="button" class="chip" id="new">New game</button>
+    </div>
+  </main>
+  <dialog id="setup">
+    <h2>New game</h2>
+    <form method="dialog">
+      <fieldset>
+        <legend>Opponent</legend>
+        <label><input type="radio" name="opponent" value="easy">Easy</label>
+        <label><input type="radio" name="opponent" value="medium">Medium</label>
+        <label><input type="radio" name="opponent" value="hard">Hard</label>
+        <label><input type="radio" name="opponent" value="friend">Friend</label>
+      </fieldset>
+      <fieldset id="colors">
+        <legend>You play</legend>
+        <label><input type="radio" name="color" value="0">White</label>
+        <label><input type="radio" name="color" value="1">Black</label>
+        <label><input type="radio" name="color" value="random">Random</label>
+      </fieldset>
+      <div class="actions">
+        <button type="submit" class="chip" value="cancel">Cancel</button>
+        <button type="submit" class="btn" value="start">Start</button>
+      </div>
+    </form>
+  </dialog>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
